@@ -1,0 +1,24 @@
+2025-03-20 19:55:09 - ERROR - [root] - 加载缓存文件失败: Expecting value: line 4 column 7 (char 42)
+2025-03-20 19:56:50 - ERROR - [root] - 加载缓存文件失败: Expecting value: line 4 column 7 (char 42)
+2025-03-20 19:58:52 - ERROR - [root] - get_user 达到最大重试次数 (3), 最后一次错误: 429 Too Many Requests
+Too Many Requests
+2025-03-20 19:58:52 - ERROR - [root] - 获取用户信息时发生错误: 429 Too Many Requests
+Too Many Requests
+2025-03-20 20:32:12 - ERROR - [root] - 获取用户信息时发生错误: 'RetryableTwitterClient' object has no attribute 'client'
+2025-03-20 20:33:06 - ERROR - [root] - 获取用户信息时发生错误: 'RetryableTwitterClient' object has no attribute 'client'
+2025-03-20 20:41:06 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-20 20:45:42 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:45:42 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:45:47 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:45:47 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:45:52 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:45:52 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:45:52 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-20 20:54:51 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:54:51 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:54:56 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:54:56 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:55:01 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:55:01 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-20 20:56:07 - ERROR - [root] - 所有API客户端都不可用
+2025-03-20 20:56:07 - ERROR - [root] - 获取用户信息时发生错误: 所有API客户端都不可用

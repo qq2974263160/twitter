@@ -1,0 +1,26 @@
+{
+    "twitter_accounts": [
+        {
+            "name": "account1",
+            "bearer_token": "",
+            "api_key": "",
+            "api_key_secret": "",
+            "access_token": "",
+            "access_token_secret": ""
+        },
+        {
+            "name": "account2",
+            "bearer_token": "",
+            "api_key": "",
+            "api_key_secret": "",
+            "access_token": "",
+            "access_token_secret": ""
+        }
+    ],
+    "cache_file": "twitter_cache.json",
+    "cache_expire_hours": 24,
+    "max_cache_size": 104857600,
+    "min_results_per_request": 5,
+    "max_results_per_request": 10,
+    "rate_limit_window": 900
+} 
