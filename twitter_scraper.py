@@ -115,7 +115,7 @@ CACHE_FILE = CONFIG['cache_file']                # 缓存文件路径
 CACHE_EXPIRE_HOURS = CONFIG['cache_expire_hours'] # 缓存过期时间(小时)
 MAX_CACHE_SIZE = CONFIG['max_cache_size']        # 最大缓存大小
 MIN_RESULTS_PER_REQUEST = CONFIG['min_results_per_request']  # 每次请求最少结果数
-MAX_RESULTS_PER_REQUEST = CONFIG['max_results_per_request']  # 每次请求最大结果数
+MAX_RESULTS_PER_REQUEST = 100   # Twitter API支持最大100条
 RATE_LIMIT_WINDOW = CONFIG['rate_limit_window']  # 速率限制窗口(秒)
 TWITTER_ACCOUNTS = CONFIG['twitter_accounts']     # Twitter账号配置
 
@@ -535,6 +535,13 @@ class RetryableTwitterClient:
                 )
             raise last_error
 
+    def _reset_inactive_clients(self):
+        """定期检查并重置被禁用的客户端"""
+        current_time = time.time()
+        for client in self.clients:
+            if not client['is_active'] and current_time - client.get('deactivated_time', 0) > 900:
+                client['is_active'] = True
+
 def tweet_to_dict(tweet, includes=None):
     """
     将Tweet对象转换为可序列化的字典
@@ -602,7 +609,14 @@ def tweet_to_dict(tweet, includes=None):
 
         return tweet_dict
     except Exception as e:
-        logger.error(f"Error converting tweet to dict: {str(e)}")
+        logger.error(
+            f"转换推文失败: {str(e)}", 
+            extra={
+                'tweet_id': getattr(tweet, 'id', 'unknown'),
+                'error_type': type(e).__name__
+            },
+            exc_info=True
+        )
         return None
 
 def format_tweet_text(tweet):
@@ -621,16 +635,17 @@ def format_tweet_text(tweet):
         
         for url in urls:
             if 'url' in url and 'expanded_url' in url:
-                # 如果有标题，使用标题
+                # 如果有标题，只使用标题
                 if 'title' in url and url['title']:
-                    replacement = f"{url['title']} ({url['expanded_url']})"
+                    replacement = url['title']
                 else:
-                    replacement = url['expanded_url']
+                    # 如果没有标题，使用display_url
+                    replacement = url.get('display_url', url['expanded_url'])
                 text = text.replace(url['url'], replacement)
         
         return text
     except Exception as e:
-        logger.error(f"Error formatting tweet text: {str(e)}")
+        logger.error(f"格式化推文文本时出错: {str(e)}")
         return tweet.text
 
 class CacheManager:
@@ -687,7 +702,7 @@ class CacheManager:
             for key, value in self.cache_data.items():
                 if 'tweets' in value:
                     serializable_cache[key] = {
-                        'tweets': [tweet_to_dict(tweet) for tweet in value['tweets']],
+                        'tweets': [self._serialize_tweet(tweet) for tweet in value['tweets']],
                         'timestamp': value['timestamp']
                     }
             
@@ -732,9 +747,12 @@ class CacheManager:
     def add_to_cache(self, key, value):
         """添加数据到缓存"""
         try:
-            value_size = len(json.dumps(value).encode('utf-8'))
+            json_str = json.dumps(value, default=str)
+            value_size = len(json_str.encode('utf-8'))
+            
             if self.current_size + value_size > self.max_size:
                 self._cleanup_size()
+            
             self.cache_data[key] = value
             self.current_size += value_size
             self.save_cache()
@@ -764,6 +782,16 @@ class CacheManager:
         except ValueError:
             return False
 
+    def _serialize_tweet(self, tweet):
+        """专门的推文序列化函数"""
+        if isinstance(tweet, dict):
+            return tweet
+        return {
+            'id': str(tweet.id),
+            'created_at': tweet.created_at.isoformat() if hasattr(tweet, 'created_at') else None,
+            # ... 其他字段
+        }
+
 # 创建全局缓存管理器实例
 cache_manager = CacheManager()
 
@@ -772,6 +800,11 @@ class PerformanceMonitor:
     def __init__(self):
         self.start_time = None
         self.operation = None
+        self.metrics = {
+            'api_calls': 0,
+            'cache_hits': 0,
+            'processing_time': 0
+        }
 
     def __enter__(self):
         self.start_time = time.time()
@@ -960,11 +993,36 @@ def get_user_tweets(client, username, max_results=5, include_replies=False, incl
 
         # 更新缓存
         if tweets_data:
-            cache_manager.set(cache_key, {
-                'tweets': tweets_data[:max_results],
-                'timestamp': datetime.now().isoformat()
-            })
-            print_success(f"\n成功获取 {len(tweets_data[:max_results])} 条推文")
+            try:
+                # 将tweets转换为可序列化的字典列表
+                serializable_tweets = []
+                for tweet in tweets_data[:max_results]:
+                    # 确保includes数据可用
+                    includes_data = tweets.includes if hasattr(tweets, 'includes') else None
+                    # 转换为字典
+                    tweet_dict = {
+                        'id': str(tweet.id),
+                        'created_at': tweet.created_at.isoformat() if hasattr(tweet, 'created_at') else None,
+                        'text': tweet.text if hasattr(tweet, 'text') else '',
+                        'public_metrics': tweet.public_metrics if hasattr(tweet, 'public_metrics') else {},
+                        'entities': tweet.entities if hasattr(tweet, 'entities') else {},
+                        'referenced_tweets': tweet.referenced_tweets if hasattr(tweet, 'referenced_tweets') else [],
+                        'attachments': tweet.attachments if hasattr(tweet, 'attachments') else {}
+                    }
+                    serializable_tweets.append(tweet_dict)
+
+                # 存入缓存
+                cache_data = {
+                    'tweets': serializable_tweets,
+                    'timestamp': datetime.now().isoformat()
+                }
+                cache_manager.set(cache_key, cache_data)
+                print_success(f"\n成功获取 {len(serializable_tweets)} 条推文")
+
+            except Exception as e:
+                logger.error(f"处理缓存数据时出错: {str(e)}")
+                # 即使缓存失败，仍然返回原始数据
+                return tweets_data[:max_results]
 
         return tweets_data[:max_results]
         
@@ -978,7 +1036,7 @@ def get_user_tweets(client, username, max_results=5, include_replies=False, incl
 def export_tweets(tweets, format_type, filename=None):
     """
     导出推文数据到文件
-    :param tweets: 要导出的推文列表
+    :param tweets: 要导出的推文列表（可以是Tweet对象或字典）
     :param format_type: 导出格式（'json' 或 'csv'）
     :param filename: 输出文件名（可选）
     :return: 导出文件的路径，失败时返回None
@@ -1002,7 +1060,12 @@ def export_tweets(tweets, format_type, filename=None):
             if format_type == 'json':
                 data = []
                 for tweet in tweets:
-                    data.append(tweet_to_dict(tweet))
+                    if isinstance(tweet, dict):
+                        data.append(tweet)
+                    else:
+                        tweet_dict = tweet_to_dict(tweet)
+                        if tweet_dict:
+                            data.append(tweet_dict)
                     pbar.update()
                     
                 with open(filename, 'w', encoding='utf-8') as f:
@@ -1015,15 +1078,26 @@ def export_tweets(tweets, format_type, filename=None):
                     writer.writerow(['ID', '发布时间', '内容', '点赞数', '转发数', '回复数'])
                     
                     for tweet in tweets:
-                        metrics = tweet.public_metrics or {}
-                        writer.writerow([
-                            tweet.id,
-                            tweet.created_at.isoformat() if tweet.created_at else '',
-                            format_tweet_text(tweet),
-                            metrics.get('like_count', 0),
-                            metrics.get('retweet_count', 0),
-                            metrics.get('reply_count', 0)
-                        ])
+                        if isinstance(tweet, dict):
+                            metrics = tweet.get('metrics', {})
+                            writer.writerow([
+                                tweet.get('id', ''),
+                                tweet.get('created_at', ''),
+                                tweet.get('text', ''),
+                                metrics.get('like_count', 0),
+                                metrics.get('retweet_count', 0),
+                                metrics.get('reply_count', 0)
+                            ])
+                        else:
+                            metrics = tweet.public_metrics if hasattr(tweet, 'public_metrics') else {}
+                            writer.writerow([
+                                tweet.id,
+                                tweet.created_at.isoformat() if hasattr(tweet, 'created_at') else '',
+                                format_tweet_text(tweet),
+                                metrics.get('like_count', 0),
+                                metrics.get('retweet_count', 0),
+                                metrics.get('reply_count', 0)
+                            ])
                         pbar.update()
                         
         print_success(f"\n数据已成功导出到: {filename}")
@@ -1031,6 +1105,7 @@ def export_tweets(tweets, format_type, filename=None):
         
     except Exception as e:
         print_error(f"\n导出数据时出错: {str(e)}")
+        logger.error(f"导出数据时出错: {str(e)}")
         return None
 
 def validate_max_results(value):
@@ -1115,35 +1190,58 @@ def get_time_range():
 
     return start_time, end_time
 
-def display_tweets(tweets):
+def display_tweets(tweets, format_type='detailed'):
     """
     显示推文内容
-    :param tweets: 推文列表
+    :param tweets: 推文列表（可以是Tweet对象或字典）
+    :param format_type: 显示格式（'detailed' 或 'simple' 或 'compact'）
     """
     for tweet in tweets:
-        print(f"\n{'='*80}")
-        print(f"发布时间: {tweet['created_at']}")
-        print(f"\n{tweet['text']}\n")
-        
-        # 显示媒体内容
-        if tweet['media']:
-            print("\n媒体内容:")
-            for media in tweet['media']:
-                print(f"- 类型: {media['type']}")
-                print(f"  链接: {media['url']}")
-                if media['alt_text']:
-                    print(f"  描述: {media['alt_text']}")
-        
-        # 显示引用推文
-        if tweet['referenced_tweets']:
-            print("\n引用推文:")
-            for ref in tweet['referenced_tweets']:
-                print(f"- 类型: {ref['type']}")
-                print(f"  内容: {ref['text']}")
-        
-        # 显示互动数据
-        print(f"\n👍 {tweet['metrics']['like_count']} | 🔄 {tweet['metrics']['retweet_count']} | 💬 {tweet['metrics']['reply_count']} | 📝 {tweet['metrics']['quote_count']}")
-        print(f"{'='*80}")
+        try:
+            print(f"\n{'='*80}")
+            
+            # 判断是Tweet对象还是字典
+            if isinstance(tweet, dict):
+                # 已经是字典格式
+                created_at = tweet.get('created_at', 'N/A')
+                text = tweet.get('text', 'N/A')
+                media = tweet.get('media', [])
+                referenced_tweets = tweet.get('referenced_tweets', [])
+                metrics = tweet.get('metrics', {})
+            else:
+                # Tweet对象，需要转换
+                created_at = tweet.created_at.isoformat() if hasattr(tweet, 'created_at') else 'N/A'
+                text = format_tweet_text(tweet)
+                media = tweet.media if hasattr(tweet, 'media') else []
+                referenced_tweets = tweet.referenced_tweets if hasattr(tweet, 'referenced_tweets') else []
+                metrics = tweet.public_metrics if hasattr(tweet, 'public_metrics') else {}
+            
+            print(f"发布时间: {created_at}")
+            print(f"\n{text}\n")
+            
+            # 显示媒体内容
+            if media:
+                print("\n媒体内容:")
+                for m in media:
+                    print(f"- 类型: {m.get('type', 'N/A')}")
+                    print(f"  链接: {m.get('url', 'N/A')}")
+                    if m.get('alt_text'):
+                        print(f"  描述: {m['alt_text']}")
+            
+            # 显示引用推文
+            if referenced_tweets:
+                print("\n引用推文:")
+                for ref in referenced_tweets:
+                    print(f"- 类型: {ref.get('type', 'N/A')}")
+                    print(f"  内容: {ref.get('text', 'N/A')}")
+            
+            # 显示互动数据
+            print(f"\n👍 {metrics.get('like_count', 0)} | 🔄 {metrics.get('retweet_count', 0)} | 💬 {metrics.get('reply_count', 0)} | 📝 {metrics.get('quote_count', 0)}")
+            print(f"{'='*80}")
+            
+        except Exception as e:
+            logger.error(f"显示推文时出错: {str(e)}")
+            print_error("显示该条推文时出错，已跳过")
 
 def handle_export(tweets):
     """

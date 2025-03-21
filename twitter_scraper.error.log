@@ -22,3 +22,51 @@ Too Many Requests
 2025-03-20 20:55:01 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
 2025-03-20 20:56:07 - ERROR - [root] - 所有API客户端都不可用
 2025-03-20 20:56:07 - ERROR - [root] - 获取用户信息时发生错误: 所有API客户端都不可用
+2025-03-21 11:41:27 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-21 11:41:27 - ERROR - [root] - 获取推文操作失败: 
+Traceback (most recent call last):
+  File "c:\Users\29742\Desktop\项目01\twitter_scraper.py", line 1084, in handle_get_tweets
+    display_tweets(tweets)
+  File "c:\Users\29742\Desktop\项目01\twitter_scraper.py", line 1129, in display_tweets
+    if tweet['media']:
+       ~~~~~^^^^^^^^^
+  File "D:\anaconda\Lib\site-packages\tweepy\mixins.py", line 41, in __getitem__
+    raise KeyError from None
+KeyError
+2025-03-21 11:42:36 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-21 11:50:55 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:50:55 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 11:51:00 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:51:00 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 11:51:05 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:51:05 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 11:54:56 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:54:56 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 11:55:01 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:55:01 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 11:55:06 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 11:55:06 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:16:07 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-21 13:28:33 - ERROR - [root] - 添加缓存数据失败: Object of type Tweet is not JSON serializable
+2025-03-21 13:34:51 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:34:51 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:34:56 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:34:56 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:35:01 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:35:01 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:35:38 - ERROR - [root] - Error converting tweet to dict: 'dict' object has no attribute 'id'
+2025-03-21 13:35:38 - ERROR - [root] - Error converting tweet to dict: 'dict' object has no attribute 'id'
+2025-03-21 13:35:38 - ERROR - [root] - Error converting tweet to dict: 'dict' object has no attribute 'id'
+2025-03-21 13:35:38 - ERROR - [root] - Error converting tweet to dict: 'dict' object has no attribute 'id'
+2025-03-21 13:35:38 - ERROR - [root] - Error converting tweet to dict: 'dict' object has no attribute 'id'
+2025-03-21 13:38:34 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:38:34 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:38:39 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:38:39 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:48:35 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:48:35 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:48:40 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:48:40 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:48:45 - ERROR - [root] - 所有API客户端都不可用
+2025-03-21 13:48:45 - ERROR - [root] - 获取推文时发生错误: 所有API客户端都不可用
+2025-03-21 13:48:45 - ERROR - [root] - 保存缓存失败: 'NoneType' object has no attribute 'id'
